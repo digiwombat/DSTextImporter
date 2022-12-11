@@ -5,6 +5,8 @@ These are plaintext files inspired by YarnSpinner's syntax. It expects one conve
 
 Indents must be tabs. Empty lines are allowed and ignored.
 
+To Install: Put it in an Editor Folder in a Unity project with Dialogue System for Unity by Pixel Crushers installed.
+
 ## Syntax Overview
 ```
 [HEADER]
