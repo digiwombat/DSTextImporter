@@ -16,7 +16,7 @@ public class DSTextImporter : EditorWindow
 	private string _heldCondition;
 	private string _heldSequence;
 	private List<(int convo, int id)> _heldLinks = new();
-	private List<string> _heldTitleLinks;
+	private List<string> _heldTitleLinks = new();
 	private string _heldTitle;
 	private Template _template;
 
@@ -26,8 +26,10 @@ public class DSTextImporter : EditorWindow
 
 	private List<(string title, DialogueEntry origin)> linkWhenDone = new();
 
+	private SerializedProperty _targetDBProperty;
+	private SerializedObject serializedObject;
 
-	[MenuItem("Tools/Barky Seal/DSText Importer")]
+	[MenuItem("Tools/DSText Importer")]
 	private static void OpenWindow()
 	{
 		GetWindow<DSTextImporter>().Show();
@@ -40,6 +42,7 @@ public class DSTextImporter : EditorWindow
 		list.drawHeaderCallback += DrawListHeader;
 		list.drawElementCallback += DrawListItem;
 		list.onAddCallback += AddListItem;
+		
 	}
 
 	void DrawListHeader(Rect rect)
@@ -67,6 +70,7 @@ public class DSTextImporter : EditorWindow
 		var fullPath = EditorUtility.OpenFolderPanel("Select Folder", lastPath, "");
 		if (string.IsNullOrEmpty(fullPath)) return;
 
+		// Truncate this if it's in the assets directory, it makes things way easier to read
 		var displayPath = fullPath;
 		if (fullPath.StartsWith(Application.dataPath))
 		{
@@ -81,12 +85,13 @@ public class DSTextImporter : EditorWindow
 
 	private void OnGUI()
 	{
-		var serializedObject = new SerializedObject(this);
-		var db = serializedObject.FindProperty("targetDatabase");
+		serializedObject = new(this);
+		_targetDBProperty = serializedObject.FindProperty("targetDatabase");
+		
 		EditorGUILayout.HelpBox("WARNING!\nRunning this tool will overwrite same-named conversations in the Target Database", MessageType.Warning);
 
 		GUILayout.Space(10);
-		EditorGUILayout.PropertyField(db);
+		EditorGUILayout.PropertyField(_targetDBProperty);
 
 		GUILayout.Space(10);
 		list.DoLayoutList();
@@ -100,6 +105,8 @@ public class DSTextImporter : EditorWindow
 		}
 		GUILayout.Space(10);
 		EditorGUILayout.EndHorizontal();
+
+		serializedObject.ApplyModifiedProperties();
 	}
 
 	public void ProcessFiles()
@@ -112,8 +119,10 @@ public class DSTextImporter : EditorWindow
 				{
 					ProcessFile(file);
 				}
+				
 				foreach (var linkData in linkWhenDone)
 				{
+					//Debug.Log($"Trying to rectify links {linkData.title}");
 					Conversation convo = targetDatabase.GetConversation(linkData.origin.conversationID);
 					DialogueEntry target = convo.GetDialogueEntry(linkData.title);
 					if (target == null)
@@ -181,12 +190,12 @@ public class DSTextImporter : EditorWindow
 						break;
 					case Node.NodeType.Reply:
 					case Node.NodeType.Speak:
-						DialogueEntry newEntry = _template.CreateDialogueEntry(node.ID, conversation.id, _heldTitle);
+						DialogueEntry newEntry = _template.CreateDialogueEntry(node.ID, conversation.id, node.Title);
 						newEntry.ActorID = GetOrCreateActor(node.Actor).id;
 						newEntry.DialogueText = node.Text;
-						newEntry.userScript = _heldScript;
-						newEntry.conditionsString = _heldCondition;
-						newEntry.Sequence = _heldSequence;
+						newEntry.userScript = node.Script;
+						newEntry.conditionsString = node.Condition;
+						newEntry.Sequence = node.Sequence;
 						
 						if (node.Parent == null)
 						{
@@ -201,8 +210,10 @@ public class DSTextImporter : EditorWindow
 								parent.outgoingLinks.Add(new(conversation.id, node.Parent.ID, conversation.id, node.ID));
 							}
 						}
-						conversation.dialogueEntries.Add(newEntry);
-						foreach((int convo, int id) links in _heldLinks)
+						
+						
+						
+						foreach((int convo, int id) links in node.LinksTo)
 						{
 							int convo = conversation.id;
 							if(links.convo != -1)
@@ -212,7 +223,7 @@ public class DSTextImporter : EditorWindow
 							newEntry.outgoingLinks.Add(new(conversation.id, newEntry.id, convo, links.id));
 						}
 
-						foreach (string link in _heldTitleLinks)
+						foreach (string link in node.TitleLinks)
 						{
 							DialogueEntry target = conversation.GetDialogueEntry(link);
 							if (target != null)
@@ -225,37 +236,15 @@ public class DSTextImporter : EditorWindow
 							}
 						}
 						
-						_heldLinks.Clear();
-						_heldTitleLinks.Clear();
-						_heldTitle = "";
-						_heldScript = "";
-						_heldCondition = "";
-						_heldSequence = "";
-						break;
-					case Node.NodeType.Script:
-						_heldScript = node.Text;
-						break;
-					case Node.NodeType.Condition:
-						_heldCondition = node.Text;
-						break;
-					case Node.NodeType.Sequence:
-						_heldSequence = node.Text;
-						break;
-					case Node.NodeType.LinkTo:
-						_heldLinks.Add(node.LinkTo);
-						break;
-					case Node.NodeType.LinkTitle:
-						_heldTitleLinks.Add(node.Text);
-						break;
-					case Node.NodeType.SetNodeTitle:
-						_heldTitle = node.Text;
+						conversation.dialogueEntries.Add(newEntry);
 						break;
 					case Node.NodeType.Group:
-						DialogueEntry newGroup = _template.CreateDialogueEntry(node.ID, conversation.id, _heldTitle);
+						DialogueEntry newGroup = _template.CreateDialogueEntry(node.ID, conversation.id, node.Title);
 						newGroup.ActorID = targetDatabase.playerID;
 						newGroup.isGroup = true;
-						newGroup.userScript = _heldScript;
-						newGroup.conditionsString = _heldCondition;
+						newGroup.userScript = node.Script;
+						newGroup.conditionsString = node.Condition;
+						newGroup.Sequence = node.Sequence;
 						
 						if(!string.IsNullOrWhiteSpace(node.Text))
 						{
@@ -276,7 +265,7 @@ public class DSTextImporter : EditorWindow
 							}
 						}
 
-						foreach ((int convo, int id) links in _heldLinks)
+						foreach ((int convo, int id) links in node.LinksTo)
 						{
 							int convo = conversation.id;
 							if (links.convo != -1)
@@ -286,7 +275,7 @@ public class DSTextImporter : EditorWindow
 							newGroup.outgoingLinks.Add(new(conversation.id, newGroup.id, convo, links.id));
 						}
 
-						foreach (string link in _heldTitleLinks)
+						foreach (string link in node.TitleLinks)
 						{
 							DialogueEntry target = conversation.GetDialogueEntry(link);
 							if (target != null)
@@ -298,21 +287,15 @@ public class DSTextImporter : EditorWindow
 								linkWhenDone.Add((link, newGroup));
 							}
 						}
+						
 						conversation.dialogueEntries.Add(newGroup);
-
-						_heldLinks.Clear();
-						_heldTitleLinks.Clear();
-						_heldTitle = "";
-						_heldScript = "";
-						_heldCondition = "";
-						_heldSequence = "";
 						break;
 					case Node.NodeType.SequenceNode:
 						DialogueEntry newSequenceEntry = _template.CreateDialogueEntry(node.ID, conversation.id, "Sequence");
 						newSequenceEntry.ActorID = targetDatabase.playerID;
 						newSequenceEntry.Sequence = node.Text;
-						newSequenceEntry.userScript = _heldScript;
-						newSequenceEntry.conditionsString = _heldCondition;
+						newSequenceEntry.userScript = node.Script;
+						newSequenceEntry.conditionsString = node.Condition;
 						
 						if(!string.IsNullOrWhiteSpace(_heldTitle))
 						{
@@ -333,7 +316,7 @@ public class DSTextImporter : EditorWindow
 							}
 						}
 
-						foreach ((int convo, int id) links in _heldLinks)
+						foreach ((int convo, int id) links in node.LinksTo)
 						{
 							int convo = conversation.id;
 							if (links.convo != -1)
@@ -343,7 +326,7 @@ public class DSTextImporter : EditorWindow
 							newSequenceEntry.outgoingLinks.Add(new(conversation.id, newSequenceEntry.id, convo, links.id));
 						}
 
-						foreach (string link in _heldTitleLinks)
+						foreach (string link in node.TitleLinks)
 						{
 							DialogueEntry target = conversation.GetDialogueEntry(link);
 							if (target != null)
@@ -356,13 +339,6 @@ public class DSTextImporter : EditorWindow
 							}
 						}
 						conversation.dialogueEntries.Add(newSequenceEntry);
-
-						_heldLinks.Clear();
-						_heldTitleLinks.Clear();
-						_heldTitle = "";
-						_heldScript = "";
-						_heldCondition = "";
-						_heldSequence = "";
 						break;
 				}
 				
@@ -410,17 +386,62 @@ public class DSTextImporter : EditorWindow
 					continue;
 				}
 
-				if (check.nodeType
-					is not Node.NodeType.Speak
-					and not Node.NodeType.Reply
-					and not Node.NodeType.SequenceNode
-					and not Node.NodeType.Group)
+				switch (check.nodeType)
 				{
-					nodes.Add(check);
-					continue;
+					case Node.NodeType.Script:
+						_heldScript = check.Text;
+						continue;
+					case Node.NodeType.Condition:
+						_heldCondition = check.Text;
+						continue;
+					case Node.NodeType.Sequence:
+						_heldSequence = check.Text;
+						continue;
+					case Node.NodeType.SetNodeTitle:
+						_heldTitle = check.Text;
+						continue;
+					case Node.NodeType.LinkTo:
+						_heldLinks.AddRange(check.LinksTo);
+						continue;	
+					case Node.NodeType.LinkTitle:
+						_heldTitleLinks.Add(check.Text);
+						continue;
 				}
+
 				previous = current;
 				current = check;
+				
+				if(!string.IsNullOrWhiteSpace(_heldCondition))
+				{
+					current.Condition = _heldCondition;
+					_heldCondition = "";
+				}
+				if (!string.IsNullOrWhiteSpace(_heldScript))
+				{
+					current.Script = _heldScript;
+					_heldScript = "";
+				}
+				if (!string.IsNullOrWhiteSpace(_heldTitle) && current.nodeType != Node.NodeType.Group)
+				{
+					current.Title = _heldTitle;
+					_heldTitle = "";
+				}
+				if (!string.IsNullOrWhiteSpace(_heldSequence) && current.nodeType != Node.NodeType.SequenceNode)
+				{
+					current.Sequence = _heldSequence;
+					_heldSequence = "";
+				}
+				if(_heldLinks?.Count > 0)
+				{
+					current.LinksTo.AddRange(_heldLinks);
+					_heldLinks?.Clear();
+				}
+				if (_heldTitleLinks?.Count > 0)
+				{
+					current.TitleLinks.AddRange(_heldTitleLinks);
+					_heldTitleLinks?.Clear();
+				}
+				
 
 				if (!nodes.Exists(x => x.ID == nodes.Count))
 				{
@@ -548,7 +569,7 @@ public class DSTextImporter : EditorWindow
 			{
 				if (int.TryParse(links[0], out int nodeID))
 				{
-					newNode.LinkTo = (-1, nodeID);
+					newNode.LinksTo.Add((-1, nodeID));
 				}
 				else
 				{
@@ -561,7 +582,7 @@ public class DSTextImporter : EditorWindow
 				if (int.TryParse(links[0], out int convoID)
 				&& int.TryParse(links[1], out int nodeID))
 				{
-					newNode.LinkTo = (convoID, nodeID);
+					newNode.LinksTo.Add((convoID, nodeID));
 				}
 				else
 				{
@@ -580,7 +601,7 @@ public class DSTextImporter : EditorWindow
 		if (trimmedElement.StartsWith(value: "<<group"))
 		{
 			newNode.nodeType = Node.NodeType.Group;
-			newNode.Text = element.Replace("<<group", "").Replace(">>", "").Trim();
+			newNode.Title = element.Replace("<<group", "").Replace(">>", "").Trim();
 			return newNode;
 		}
 
@@ -641,9 +662,15 @@ public class DSTextImporter : EditorWindow
 		public string Name { get; set; }
 		public int Depth { get; set; }
 		public Node Parent { get; set; }
+		public string Title { get; set; }
 		public string Text { get; set; }
 		public string Actor { get; set; }
-		public (int convo, int id) LinkTo { get; set; }
+		public string Script { get; set; }
+		public string Condition { get; set; }
+		public string Sequence { get; set; }
+		public List<string> TitleLinks = new();
+
+		public List<(int convo, int id)> LinksTo = new();
 		public NodeType nodeType = NodeType.Title;
 
 		public enum NodeType { Title, Conversant, Speak, Reply, Script, Condition, Sequence, SequenceNode, LinkTo, Group, SetNodeTitle, LinkTitle }
