@@ -181,6 +181,7 @@ public class DSTextImporter : EditorWindow
 						conversation.Title = node.Text;
 						if(targetDatabase.conversations.Exists(x => x.Title == node.Text))
 						{
+							conversation.id = targetDatabase.GetConversation(node.Text).id;
 							targetDatabase.conversations.RemoveAll(x => x.Title == node.Text);
 						}
 						break;
