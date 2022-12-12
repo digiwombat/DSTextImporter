@@ -192,6 +192,14 @@ public class DSTextImporter : EditorWindow
 					case Node.NodeType.Speak:
 						DialogueEntry newEntry = _template.CreateDialogueEntry(node.ID, conversation.id, node.Title);
 						newEntry.ActorID = GetOrCreateActor(node.Actor).id;
+						if(node.nodeType == Node.NodeType.Speak)
+						{
+							newEntry.ConversantID = targetDatabase.playerID;
+						}
+						else
+						{
+							newEntry.ConversantID = conversation.ConversantID;
+						}
 						newEntry.DialogueText = node.Text;
 						newEntry.userScript = node.Script;
 						newEntry.conditionsString = node.Condition;
@@ -241,6 +249,7 @@ public class DSTextImporter : EditorWindow
 					case Node.NodeType.Group:
 						DialogueEntry newGroup = _template.CreateDialogueEntry(node.ID, conversation.id, node.Title);
 						newGroup.ActorID = targetDatabase.playerID;
+						newGroup.ConversantID = conversation.ConversantID;
 						newGroup.isGroup = true;
 						newGroup.userScript = node.Script;
 						newGroup.conditionsString = node.Condition;
@@ -293,6 +302,7 @@ public class DSTextImporter : EditorWindow
 					case Node.NodeType.SequenceNode:
 						DialogueEntry newSequenceEntry = _template.CreateDialogueEntry(node.ID, conversation.id, "Sequence");
 						newSequenceEntry.ActorID = targetDatabase.playerID;
+						newSequenceEntry.ConversantID = conversation.ConversantID;
 						newSequenceEntry.Sequence = node.Text;
 						newSequenceEntry.userScript = node.Script;
 						newSequenceEntry.conditionsString = node.Condition;
