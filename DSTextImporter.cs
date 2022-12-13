@@ -478,7 +478,7 @@ public class DSTextImporter : EditorWindow
 				}
 				else
 				{
-					Node previousSibling = nodes.FirstOrDefault(sibling => sibling.Depth == current.Depth);
+					Node previousSibling = nodes.LastOrDefault(sibling => sibling.Depth == current.Depth);
 					current.Parent = previousSibling;
 
 					if (previousSibling == null)
