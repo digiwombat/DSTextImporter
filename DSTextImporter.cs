@@ -29,10 +29,18 @@ public class DSTextImporter : EditorWindow
 	private SerializedProperty _targetDBProperty;
 	private SerializedObject serializedObject;
 
-	[MenuItem("Tools/DSText Importer")]
+	[MenuItem("Museum Game/Dialogue Importer")]
 	private static void OpenWindow()
 	{
 		GetWindow<DSTextImporter>().Show();
+	}
+
+	[MenuItem("Assets/Create/Museum Game/New Dialogue File", false, 1)]
+	private static void CreateNewAsset()
+	{
+		ProjectWindowUtil.CreateAssetWithContent(
+			"New Conversation.dstext",
+			"title: NewConversation\nnpc: System\n---\n\n===");
 	}
 
 	protected void OnEnable()
@@ -134,7 +142,7 @@ public class DSTextImporter : EditorWindow
 						}
 						else
 						{
-							Debug.LogError("Couldn't find title to link to");
+							Debug.LogError($"Couldn't find title to link to | {convo.Title} | {linkData.title}");
 						}
 					}
 					else
@@ -166,7 +174,7 @@ public class DSTextImporter : EditorWindow
 			DialogueEntry previous = new();
 			
 			List<Node> nodes = Parse(filename);
-			if(nodes == null || nodes[0].nodeType != Node.NodeType.Title)
+			if(nodes == null || nodes.Count == 0 || nodes[0].nodeType != Node.NodeType.Title)
 			{
 				Debug.LogError($"Conversation file must start with a title. | {filename}");
 				return;
@@ -370,7 +378,7 @@ public class DSTextImporter : EditorWindow
 
 		elements = File.ReadAllLines(filename).Where(arg => !string.IsNullOrWhiteSpace(arg)).ToList();
 		
-		if(!elements[0].StartsWith("title:"))
+		if(elements.Count == 0 || !elements[0].StartsWith("title:"))
 		{
 			Debug.LogError("Conversation file must start with a title.");
 			return null;
