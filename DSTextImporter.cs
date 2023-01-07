@@ -29,7 +29,7 @@ public class DSTextImporter : EditorWindow
 	private SerializedProperty _targetDBProperty;
 	private SerializedObject serializedObject;
 
-	[MenuItem("Museum Game/Dialogue Importer")]
+	[MenuItem("Tools/DSText Importer")]
 	private static void OpenWindow()
 	{
 		GetWindow<DSTextImporter>().Show();
