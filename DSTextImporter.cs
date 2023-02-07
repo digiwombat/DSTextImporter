@@ -543,6 +543,11 @@ public class DSTextImporter : EditorWindow
 			return newNode;
 		}
 		
+		if(trimmedElement.Contains("//"))
+		{
+			trimmedElement = trimmedElement.Substring(0, trimmedElement.IndexOf("//"));
+		}
+		
 		if(trimmedElement.StartsWith("<<script"))
 		{
 			newNode.nodeType = Node.NodeType.Script;
