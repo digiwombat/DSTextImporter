@@ -27,6 +27,7 @@ title: Sets the title of the next dialogue line sequence node, or group.
 link: Links to either a title or a node id. 
       Works across all conversations in a database. 
       Applies to next dialogue line, group, or sequence node.
+// comments start with double slash.
 ```
 
 ## Sample
