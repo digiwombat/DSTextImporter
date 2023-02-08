@@ -554,10 +554,24 @@ public class DSTextImporter : EditorWindow
 			string nodeText = "";
 			while(!elements[_elementIndex].Contains(">>"))
 			{
-				nodeText += elements[_elementIndex].Substring(0, elements[_elementIndex].IndexOf("//")) + Environment.NewLine;
+				if (elements[_elementIndex].Contains("//"))
+				{
+					nodeText += elements[_elementIndex].Substring(0, elements[_elementIndex].IndexOf("//")) + Environment.NewLine;
+				}
+				else
+				{
+					nodeText += elements[_elementIndex] + Environment.NewLine;
+				}
 				_elementIndex++;
 			}
-			nodeText += elements[_elementIndex];
+			if (elements[_elementIndex].Contains("//"))
+			{
+				nodeText += elements[_elementIndex].Substring(0, elements[_elementIndex].IndexOf("//")) + Environment.NewLine;
+			}
+			else
+			{
+				nodeText += elements[_elementIndex] + Environment.NewLine;
+			}
 			nodeText = nodeText.Replace("<<script", "").Replace(">>", "").Replace("\t", "").Trim();
 			newNode.Text = nodeText;
 			return newNode;
@@ -569,10 +583,24 @@ public class DSTextImporter : EditorWindow
 			string nodeText = "";
 			while (!elements[_elementIndex].Contains(">>"))
 			{
-				nodeText += elements[_elementIndex].Substring(0, elements[_elementIndex].IndexOf("//")) + Environment.NewLine;
+				if (elements[_elementIndex].Contains("//"))
+				{
+					nodeText += elements[_elementIndex].Substring(0, elements[_elementIndex].IndexOf("//")) + Environment.NewLine;
+				}
+				else
+				{
+					nodeText += elements[_elementIndex] + Environment.NewLine;
+				}
 				_elementIndex++;
 			}
-			nodeText += elements[_elementIndex];
+			if (elements[_elementIndex].Contains("//"))
+			{
+				nodeText += elements[_elementIndex].Substring(0, elements[_elementIndex].IndexOf("//"));
+			}
+			else
+			{
+				nodeText += elements[_elementIndex];
+			}
 			nodeText = nodeText.Replace("<<cond", "").Replace(">>", "").Replace("\t", "").Trim();
 			newNode.Text = nodeText;
 			return newNode;
@@ -635,10 +663,24 @@ public class DSTextImporter : EditorWindow
 			string nodeText = "";
 			while (!elements[_elementIndex].Contains(">>"))
 			{
-				nodeText += elements[_elementIndex].Substring(0, elements[_elementIndex].IndexOf("//")) + Environment.NewLine;
+				if (elements[_elementIndex].Contains("//"))
+				{
+					nodeText += elements[_elementIndex].Substring(0, elements[_elementIndex].IndexOf("//")) + Environment.NewLine;
+				}
+				else
+				{
+					nodeText += elements[_elementIndex] + Environment.NewLine;
+				}
 				_elementIndex++;
 			}
-			nodeText += elements[_elementIndex];
+			if (elements[_elementIndex].Contains("//"))
+			{
+				nodeText += elements[_elementIndex].Substring(0, elements[_elementIndex].IndexOf("//"));
+			}
+			else
+			{
+				nodeText += elements[_elementIndex];
+			}
 			nodeText = nodeText.Replace("<<seqnode", "").Replace(">>", "").Replace("\t", "").Trim();
 			newNode.Text = nodeText;
 			return newNode;
@@ -650,10 +692,24 @@ public class DSTextImporter : EditorWindow
 			string nodeText = "";
 			while (!elements[_elementIndex].Contains(">>"))
 			{
-				nodeText += elements[_elementIndex].Substring(0, elements[_elementIndex].IndexOf("//")) + Environment.NewLine;
+				if (elements[_elementIndex].Contains("//"))
+				{
+					nodeText += elements[_elementIndex].Substring(0, elements[_elementIndex].IndexOf("//")) + Environment.NewLine;
+				}
+				else
+				{
+					nodeText += elements[_elementIndex] + Environment.NewLine;
+				}
 				_elementIndex++;
 			}
-			nodeText += elements[_elementIndex];
+			if (elements[_elementIndex].Contains("//"))
+			{
+				nodeText += elements[_elementIndex].Substring(0, elements[_elementIndex].IndexOf("//"));
+			}
+			else
+			{
+				nodeText += elements[_elementIndex];
+			}
 			nodeText = nodeText.Replace("<<seq", "").Replace(">>", "").Replace("\t", "").Trim();
 			newNode.Text = nodeText;
 			return newNode;
