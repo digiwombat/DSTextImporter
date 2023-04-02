@@ -11,7 +11,7 @@ using UnityEngine;
 public class DSTextImporter : EditorWindow
 {
 	public DialogueDatabase targetDatabase;
-	public List<string> filenames;
+	public List<string> filenames = new();
 	private string _heldScript;
 	private string _heldCondition;
 	private string _heldSequence;
@@ -90,6 +90,7 @@ public class DSTextImporter : EditorWindow
 			displayPath = fullPath;
 		}
 		filenames.Add(displayPath);
+		list.DoLayoutList();
 	}
 
 	private void OnGUI()
