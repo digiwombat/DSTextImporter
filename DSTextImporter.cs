@@ -70,6 +70,7 @@ public class DSTextImporter : EditorWindow
 
 	private void AddListItem(ReorderableList list)
 	{
+		if(filenames == null) filenames = new();
 		string lastPath = "Assets";
 		if (filenames.Count > 0)
 		{
