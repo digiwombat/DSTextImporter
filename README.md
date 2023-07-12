@@ -47,8 +47,10 @@ Alice: Testing
 		Alice: Testing Reply
 			<<group 999>>
 				-> Testing another Reply
-					<<seqnode ANodeSequence();
-					OnMultipleLines>>
+					<<seqnode
+						ANodeSequence();
+						OnMultipleLines
+					>>
 					Alice: I love dialogues!
 					Alice: I am a humdinger.
 					-> Player talks again.
