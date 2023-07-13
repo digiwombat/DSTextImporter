@@ -35,7 +35,7 @@ public class DSTextImporter : EditorWindow
 		GetWindow<DSTextImporter>().Show();
 	}
 
-	[MenuItem("Assets/Create/Museum Game/New Dialogue File", false, 1)]
+	[MenuItem("Assets/Conversations/New Dialogue File", false, 1)]
 	private static void CreateNewAsset()
 	{
 		ProjectWindowUtil.CreateAssetWithContent(
