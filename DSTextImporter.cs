@@ -77,7 +77,11 @@ public class DSTextImporter : EditorWindow
 			lastPath = filenames.Last();
 		}
 		var fullPath = EditorUtility.OpenFolderPanel("Select Folder", lastPath, "");
-		if (string.IsNullOrEmpty(fullPath)) return;
+		if (string.IsNullOrEmpty(fullPath))
+		{
+			//Debug.Log("Nothing to add");
+			return;
+		}
 
 		// Truncate this if it's in the assets directory, it makes things way easier to read
 		var displayPath = fullPath;
@@ -91,6 +95,7 @@ public class DSTextImporter : EditorWindow
 		}
 		filenames.Add(displayPath);
 		list.DoLayoutList();
+		//Debug.Log("Path added");
 	}
 
 	private void OnGUI()
@@ -112,11 +117,17 @@ public class DSTextImporter : EditorWindow
 		if (GUILayout.Button("Process Files", GUILayout.Width(120), GUILayout.Height(40)))
 		{
 			ProcessFiles();
+			UniqueIDWindow.OpenUniqueIDWindow();
+			UniqueIDWindow.instance.AddAllDatabasesInFolder("Assets/Databases", false);
+			UniqueIDWindow.instance.ProcessDatabases();
+			UniqueIDWindow.instance.Close();
+			EditorUtility.SetDirty(targetDatabase);
+			AssetDatabase.SaveAssets();
 		}
 		GUILayout.Space(10);
 		EditorGUILayout.EndHorizontal();
-
 		serializedObject.ApplyModifiedProperties();
+		
 	}
 
 	public void ProcessFiles()
@@ -167,12 +178,18 @@ public class DSTextImporter : EditorWindow
 		if(File.Exists(filename))
 		{
 			_template = Template.FromDefault();
-			Conversation conversation = _template.CreateConversation(targetDatabase.conversations.Max(x => x.id) + 1, "PLACEHOLDERTITLE");
-			DialogueEntry startNode = _template.CreateDialogueEntry(0, conversation.id, "START");
-			startNode.Sequence = "None()"; // START node usually shouldn't play a sequence.
-			startNode.ActorID = GetOrCreateActor("Player", true).id;
-			conversation.dialogueEntries.Add(startNode);
-			DialogueEntry current = startNode;
+			Conversation conversation = _template.CreateConversation(targetDatabase.baseID, "PLACEHOLDERTITLE");
+			conversation.ActorID = targetDatabase.playerID;
+			
+			DialogueEntry startEntry = _template.CreateDialogueEntry(0, conversation.id, "START");
+			//startEntry.fields = new List<Field>();
+			//_template.dialogueEntryFields.ForEach(templateField => startEntry.fields.Add(new Field(templateField.title, templateField.value, templateField.type)));
+			startEntry.Title = "START";
+			startEntry.currentSequence = "None()";
+			startEntry.ActorID = targetDatabase.playerID;
+			conversation.dialogueEntries.Add(startEntry);
+			
+			DialogueEntry current = startEntry;
 			DialogueEntry previous = new();
 			
 			List<Node> nodes = Parse(filename);
@@ -197,7 +214,7 @@ public class DSTextImporter : EditorWindow
 						break;
 					case Node.NodeType.Conversant:
 						conversation.ConversantID = GetOrCreateActor(node.Actor).id;
-						startNode.ConversantID = conversation.ConversantID;
+						startEntry.ConversantID = conversation.ConversantID;
 						break;
 					case Node.NodeType.Reply:
 					case Node.NodeType.Speak:
@@ -219,7 +236,7 @@ public class DSTextImporter : EditorWindow
 						if (node.Parent == null)
 						{
 							//Debug.Log($"{node.ID} | Parent null");
-							startNode.outgoingLinks.Add(new(conversation.id, startNode.id, conversation.id, node.ID));
+							startEntry.outgoingLinks.Add(new(conversation.id, startEntry.id, conversation.id, node.ID));
 						}
 						else
 						{
@@ -274,7 +291,7 @@ public class DSTextImporter : EditorWindow
 						if (node.Parent == null)
 						{
 							//Debug.Log($"{node.ID} | Parent null");
-							startNode.outgoingLinks.Add(new(conversation.id, startNode.id, conversation.id, node.ID));
+							startEntry.outgoingLinks.Add(new(conversation.id, startEntry.id, conversation.id, node.ID));
 						}
 						else
 						{
@@ -312,8 +329,8 @@ public class DSTextImporter : EditorWindow
 						break;
 					case Node.NodeType.SequenceNode:
 						DialogueEntry newSequenceEntry = _template.CreateDialogueEntry(node.ID, conversation.id, "Sequence");
-						newSequenceEntry.ActorID = targetDatabase.playerID;
-						newSequenceEntry.ConversantID = conversation.ConversantID;
+						newSequenceEntry.ConversantID = targetDatabase.playerID;
+						newSequenceEntry.ActorID = conversation.ConversantID;
 						newSequenceEntry.Sequence = node.Text;
 						newSequenceEntry.userScript = node.Script;
 						newSequenceEntry.conditionsString = node.Condition;
@@ -326,7 +343,7 @@ public class DSTextImporter : EditorWindow
 						if (node.Parent == null)
 						{
 							//Debug.Log($"{node.ID} | Parent null");
-							startNode.outgoingLinks.Add(new(conversation.id, startNode.id, conversation.id, node.ID));
+							startEntry.outgoingLinks.Add(new(conversation.id, startEntry.id, conversation.id, node.ID));
 						}
 						else
 						{
@@ -403,7 +420,7 @@ public class DSTextImporter : EditorWindow
 				Node check = GetAsElementNode(elements[_elementIndex]);
 				if (check == null)
 				{
-					Debug.Log(elements[_elementIndex]);
+					//Debug.Log(elements[_elementIndex]);
 					continue;
 				}
 
@@ -511,6 +528,7 @@ public class DSTextImporter : EditorWindow
 
 	public Actor GetOrCreateActor(string name, bool isPlayer = false, int id = -1)
 	{
+		//Debug.Log(targetDatabase.actors.Find(x => x.Name == name)?.id.ToString());
 		var actor = targetDatabase.GetActor(name);
 		if (actor == null)
 		{
@@ -543,6 +561,11 @@ public class DSTextImporter : EditorWindow
 			newNode.nodeType = Node.NodeType.Conversant;
 			newNode.Actor = element.Replace("npc:", "").Trim();
 			return newNode;
+		}
+
+		if (trimmedElement.StartsWith("//"))
+		{
+			return null;
 		}
 		
 		if(trimmedElement.Contains("//"))
@@ -675,7 +698,12 @@ public class DSTextImporter : EditorWindow
 				}
 				_elementIndex++;
 			}
-			if (elements[_elementIndex].Contains("//"))
+
+			if (elements[_elementIndex].StartsWith("//"))
+			{
+				//skip
+			}
+			else if (elements[_elementIndex].Contains("//"))
 			{
 				nodeText += elements[_elementIndex].Substring(0, elements[_elementIndex].IndexOf("//"));
 			}
